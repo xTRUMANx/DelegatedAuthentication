@@ -38,11 +38,11 @@ namespace DelegatedAuthentication
 
             var res = await httpClient.GetFromJsonAsync<DelegatedAuthenticationResponse>(options.AuthEndpoint);
 
-            if (res == null || !res.IsAuthenticated || string.IsNullOrWhiteSpace(res.Name)) return;
+            if (res == null || !res.IsAuthenticated || string.IsNullOrWhiteSpace(res.Id)) return;
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, res.Name),
+                new Claim(ClaimTypes.Name, res.Id),
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, options.AuthenticationScheme);
@@ -59,7 +59,7 @@ namespace DelegatedAuthentication
     {
         public bool IsAuthenticated { get; set; }
 
-        public string? Name { get; set; }
+        public string? Id { get; set; }
     }
 
     public class DelegatedAuthenticationMiddlewareOptions
