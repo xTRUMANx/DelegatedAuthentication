@@ -26,12 +26,21 @@ namespace DelegatedAuthentication
                 await DoDelegatedAuth(context);
             }
 
-            await next(context);
+            if (context.User.Identity?.IsAuthenticated == false && !string.IsNullOrWhiteSpace(options.LoginPage))
+            {
+                context.Response.Redirect(options.LoginPage);
+            }
+            else
+            {
+                await next(context);
+            }
         }
 
         private async Task DoDelegatedAuth(HttpContext context)
         {
-            var httpClient = new HttpClient();
+            var httpClient = options.HttpMessageHandler == null 
+                ? new HttpClient() 
+                : new HttpClient(options.HttpMessageHandler);
 
             var cookie = context.Request.Cookies[options.CookieName];
             httpClient.DefaultRequestHeaders.Add("Cookie", $"{options.CookieName}={cookie}");
@@ -40,8 +49,6 @@ namespace DelegatedAuthentication
 
             if (res == null || !res.IsAuthenticated || string.IsNullOrWhiteSpace(res.Id))
             {
-                context.Response.Redirect(options.LoginPage);
-
                 return;
             }
 
@@ -88,6 +95,11 @@ namespace DelegatedAuthentication
         /// Login page URL to redirect user to if they are not logged in. Required.
         /// </summary>
         public string LoginPage { get; set; } = null!;
+        
+        /// <summary>
+        /// Passed to the HttpClient used to call the AuthEndpoint.
+        /// </summary>
+        public HttpMessageHandler? HttpMessageHandler { get; set; }
 
         public void Validate()
         {
