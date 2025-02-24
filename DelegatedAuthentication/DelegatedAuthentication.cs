@@ -21,7 +21,7 @@ namespace DelegatedAuthentication
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if ((context.User.Identity?.IsAuthenticated) != true && context.Request.Cookies.Any(c => c.Key == options.CookieName))
+            if ((context.User.Identity?.IsAuthenticated) == false)
             {
                 await DoDelegatedAuth(context);
             }
@@ -38,14 +38,9 @@ namespace DelegatedAuthentication
 
         private async Task DoDelegatedAuth(HttpContext context)
         {
-            var httpClient = options.HttpMessageHandler == null 
-                ? new HttpClient() 
-                : new HttpClient(options.HttpMessageHandler);
-
-            var cookie = context.Request.Cookies[options.CookieName];
-            httpClient.DefaultRequestHeaders.Add("Cookie", $"{options.CookieName}={cookie}");
-
-            var res = await httpClient.GetFromJsonAsync<DelegatedAuthenticationResponse>(options.AuthEndpoint);
+            DelegatedAuthenticationResponse? res = string.IsNullOrWhiteSpace(options.ForceLoginAs)
+                ? await CallAuthEndpoint(context)
+                : new() { Id = options.ForceLoginAs, IsAuthenticated = true };
 
             if (res == null || !res.IsAuthenticated || string.IsNullOrWhiteSpace(res.Id))
             {
@@ -65,6 +60,22 @@ namespace DelegatedAuthentication
 
             context.User = principal;
         }
+
+        private async Task<DelegatedAuthenticationResponse?> CallAuthEndpoint(HttpContext context)
+        {
+            if (!context.Request.Cookies.Any(c => c.Key == options.CookieName)) return null;
+
+            var httpClient = options.HttpMessageHandler == null
+                            ? new HttpClient()
+                            : new HttpClient(options.HttpMessageHandler);
+
+            var cookie = context.Request.Cookies[options.CookieName];
+            httpClient.DefaultRequestHeaders.Add("Cookie", $"{options.CookieName}={cookie}");
+
+            var res = await httpClient.GetFromJsonAsync<DelegatedAuthenticationResponse>(options.AuthEndpoint);
+
+            return res;
+        }
     }
 
     class DelegatedAuthenticationResponse
@@ -76,6 +87,11 @@ namespace DelegatedAuthentication
 
     public class DelegatedAuthenticationOptions
     {
+        /// <summary>
+        /// If set to a non-empty value, delegated authentication process is skipped and user is logged in as the value.
+        /// </summary>
+        public string? ForceLoginAs { get; set; }
+
         /// <summary>
         /// Endpoint to fetch authentication information from. Required.
         /// </summary>
