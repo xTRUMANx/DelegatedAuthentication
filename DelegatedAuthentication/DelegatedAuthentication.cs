@@ -93,7 +93,7 @@ namespace DelegatedAuthentication
         public string? ForceLoginAs { get; set; }
 
         /// <summary>
-        /// Endpoint to fetch authentication information from. Required.
+        /// Endpoint to fetch authentication information from. Required if ForceLoginAs is not set.
         /// </summary>
         public string AuthEndpoint { get; set; } = null!;
 
@@ -108,10 +108,10 @@ namespace DelegatedAuthentication
         public string CookieName { get; set; } = ".ASPXAUTH";
 
         /// <summary>
-        /// Login page URL to redirect user to if they are not logged in. Required.
+        /// Login page URL to redirect user to if they are not logged in. Required if ForceLoginAs is not set.
         /// </summary>
         public string LoginPage { get; set; } = null!;
-        
+
         /// <summary>
         /// Passed to the HttpClient used to call the AuthEndpoint.
         /// </summary>
@@ -119,19 +119,22 @@ namespace DelegatedAuthentication
 
         public void Validate()
         {
-            if (string.IsNullOrWhiteSpace(AuthEndpoint))
-            {
-                throw new ArgumentNullException(nameof(AuthEndpoint), $"{nameof(AuthEndpoint)} must be specifed.");
-            }
-
             if (string.IsNullOrWhiteSpace(AuthenticationScheme))
             {
                 throw new ArgumentNullException(nameof(AuthenticationScheme), $"{nameof(AuthenticationScheme)} must be specifed.");
             }
 
-            if (string.IsNullOrWhiteSpace(LoginPage))
+            if (string.IsNullOrWhiteSpace(ForceLoginAs))
             {
-                throw new ArgumentNullException(nameof(LoginPage), $"{nameof(LoginPage)} must be specifed.");
+                if (string.IsNullOrWhiteSpace(AuthEndpoint))
+                {
+                    throw new ArgumentNullException(nameof(AuthEndpoint), $"{nameof(AuthEndpoint)} must be specifed.");
+                }
+
+                if (string.IsNullOrWhiteSpace(LoginPage))
+                {
+                    throw new ArgumentNullException(nameof(LoginPage), $"{nameof(LoginPage)} must be specifed.");
+                }
             }
         }
     }
@@ -156,7 +159,7 @@ namespace DelegatedAuthentication
             DelegatedAuthenticationOptions options = (app.ApplicationServices.GetService(typeof(DelegatedAuthenticationOptions)) as DelegatedAuthenticationOptions) ?? new();
 
             setupAction?.Invoke(options);
-            
+
             options.Validate();
 
             return app.UseMiddleware<DelegatedAuthentication>(options);
