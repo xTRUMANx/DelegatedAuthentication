@@ -26,9 +26,16 @@ namespace DelegatedAuthentication
                 await DoDelegatedAuth(context);
             }
 
-            if (context.User.Identity?.IsAuthenticated == false && !string.IsNullOrWhiteSpace(options.LoginPage))
+            var loginPage = options.LoginPage;
+
+            if (loginPage.StartsWith("/"))
             {
-                context.Response.Redirect(options.LoginPage);
+                loginPage = BuildAbsoluteUrlBasedOnRequest(context, loginPage);
+            }
+
+            if (context.User.Identity?.IsAuthenticated == false)
+            {
+                context.Response.Redirect(loginPage);
             }
             else
             {
@@ -72,10 +79,19 @@ namespace DelegatedAuthentication
             var cookie = context.Request.Cookies[options.CookieName];
             httpClient.DefaultRequestHeaders.Add("Cookie", $"{options.CookieName}={cookie}");
 
-            var res = await httpClient.GetFromJsonAsync<DelegatedAuthenticationResponse>(options.AuthEndpoint);
+            var authEndpoint = options.AuthEndpoint;
+            
+            if (authEndpoint.StartsWith("/"))
+            {
+                authEndpoint = BuildAbsoluteUrlBasedOnRequest(context, authEndpoint);
+            }
+
+            var res = await httpClient.GetFromJsonAsync<DelegatedAuthenticationResponse>(authEndpoint);
 
             return res;
         }
+
+        string BuildAbsoluteUrlBasedOnRequest(HttpContext context, string relativeUrl) => $"{context.Request.Scheme}://{context.Request.Host}{relativeUrl}";
     }
 
     class DelegatedAuthenticationResponse
