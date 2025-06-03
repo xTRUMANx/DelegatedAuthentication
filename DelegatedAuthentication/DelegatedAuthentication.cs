@@ -21,16 +21,30 @@ namespace DelegatedAuthentication
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if ((context.User.Identity?.IsAuthenticated) == false)
-            {
-                await DoDelegatedAuth(context);
-            }
-
             var loginPage = options.LoginPage;
 
             if (loginPage.StartsWith("/"))
             {
                 loginPage = BuildAbsoluteUrlBasedOnRequest(context, loginPage);
+            }
+
+            var cookie = GetCookie(context);
+
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                if(context.User.Identity?.IsAuthenticated == true)
+                {
+                    await context.SignOutAsync();
+                }
+
+                context.Response.Redirect(loginPage);
+
+                return;
+            }
+
+            if ((context.User.Identity?.IsAuthenticated) == false)
+            {
+                await DoDelegatedAuth(context);
             }
 
             if (context.User.Identity?.IsAuthenticated == false)
@@ -76,11 +90,11 @@ namespace DelegatedAuthentication
                             ? new HttpClient()
                             : new HttpClient(options.HttpMessageHandler);
 
-            var cookie = context.Request.Cookies[options.CookieName];
+            var cookie = GetCookie(context);
             httpClient.DefaultRequestHeaders.Add("Cookie", $"{options.CookieName}={cookie}");
 
             var authEndpoint = options.AuthEndpoint;
-            
+
             if (authEndpoint.StartsWith("/"))
             {
                 authEndpoint = BuildAbsoluteUrlBasedOnRequest(context, authEndpoint);
@@ -90,6 +104,8 @@ namespace DelegatedAuthentication
 
             return res;
         }
+
+        string? GetCookie(HttpContext context) => context.Request.Cookies[options.CookieName];
 
         string BuildAbsoluteUrlBasedOnRequest(HttpContext context, string relativeUrl) => $"{context.Request.Scheme}://{context.Request.Host}{relativeUrl}";
     }
