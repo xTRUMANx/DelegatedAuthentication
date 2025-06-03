@@ -21,6 +21,13 @@ namespace DelegatedAuthentication
 
         public async Task InvokeAsync(HttpContext context)
         {
+            if (options.IgnoredPaths.Any(context.Request.Path.Value.StartsWith) || options.IgnoredPathExtensions.Any(context.Request.Path.Value.EndsWith))
+            {
+                await next(context);
+
+                return;
+            }
+
             var loginPage = options.LoginPage;
 
             if (loginPage.StartsWith("/"))
@@ -32,7 +39,7 @@ namespace DelegatedAuthentication
 
             if (string.IsNullOrWhiteSpace(cookie))
             {
-                if(context.User.Identity?.IsAuthenticated == true)
+                if (IsAuthenticated(context))
                 {
                     await context.SignOutAsync();
                 }
@@ -42,9 +49,11 @@ namespace DelegatedAuthentication
                 return;
             }
 
-            if ((context.User.Identity?.IsAuthenticated) == false)
+            DelegatedAuthenticationResponse? res = await GetDelegatedAuthenticationResponseAsync(context);
+
+            if (!IsAuthenticated(context) || (res?.IsAuthenticated == true && res?.Id!.Equals(context.User.Identity!.Name) == false))
             {
-                await DoDelegatedAuth(context);
+                await DoDelegatedAuth(context, res);
             }
 
             if (context.User.Identity?.IsAuthenticated == false)
@@ -57,12 +66,17 @@ namespace DelegatedAuthentication
             }
         }
 
-        private async Task DoDelegatedAuth(HttpContext context)
-        {
-            DelegatedAuthenticationResponse? res = string.IsNullOrWhiteSpace(options.ForceLoginAs)
-                ? await CallAuthEndpoint(context)
-                : new() { Id = options.ForceLoginAs, IsAuthenticated = true };
+        bool IsAuthenticated(HttpContext context) => context.User.Identity?.IsAuthenticated == true;
 
+        private async Task<DelegatedAuthenticationResponse?> GetDelegatedAuthenticationResponseAsync(HttpContext context)
+        {
+            return string.IsNullOrWhiteSpace(options.ForceLoginAs)
+                        ? await CallAuthEndpoint(context)
+                        : new() { Id = options.ForceLoginAs, IsAuthenticated = true };
+        }
+
+        private async Task DoDelegatedAuth(HttpContext context, DelegatedAuthenticationResponse? res)
+        {
             if (res == null || !res.IsAuthenticated || string.IsNullOrWhiteSpace(res.Id))
             {
                 return;
@@ -144,9 +158,14 @@ namespace DelegatedAuthentication
         /// </summary>
         public string LoginPage { get; set; } = null!;
 
+        public string[] IgnoredPaths { get; set; } = [];
+
+        public string[] IgnoredPathExtensions { get; set; } = [];
+
         /// <summary>
         /// Passed to the HttpClient used to call the AuthEndpoint.
         /// </summary>
+        /// 
         public HttpMessageHandler? HttpMessageHandler { get; set; }
 
         public void Validate()
