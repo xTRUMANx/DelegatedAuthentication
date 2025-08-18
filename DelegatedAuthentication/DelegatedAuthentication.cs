@@ -39,7 +39,7 @@ namespace DelegatedAuthentication
 
             if (string.IsNullOrWhiteSpace(cookie))
             {
-                if (IsAuthenticated(context))
+                if (options.CallSignInAndSignOut && IsAuthenticated(context))
                 {
                     await context.SignOutAsync();
                 }
@@ -91,7 +91,7 @@ namespace DelegatedAuthentication
 
             var principal = new ClaimsPrincipal(claimsIdentity);
 
-            await context.SignInAsync(options.AuthenticationScheme, principal);
+            if(options.CallSignInAndSignOut) await context.SignInAsync(options.AuthenticationScheme, principal);
 
             context.User = principal;
         }
@@ -137,6 +137,11 @@ namespace DelegatedAuthentication
         /// If set to a non-empty value, delegated authentication process is skipped and user is logged in as the value.
         /// </summary>
         public string? ForceLoginAs { get; set; }
+
+        /// <summary>
+        /// If set to true, the middleware will call SignInAsync and SignOutAsync on the context. Defaults to true.
+        /// </summary>
+        public bool CallSignInAndSignOut { get; set; } = true;
 
         /// <summary>
         /// Endpoint to fetch authentication information from. Required if ForceLoginAs is not set.
