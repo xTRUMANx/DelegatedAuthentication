@@ -41,7 +41,7 @@ namespace DelegatedAuthentication
             {
                 if (IsAuthenticated(context))
                 {
-                    await context.SignOutAsync();
+                    if (options.CallSignInAndSignOut) await context.SignOutAsync();
                 }
 
                 if(options.RedirectToLoginPage) context.Response.Redirect(loginPage);
@@ -92,7 +92,7 @@ namespace DelegatedAuthentication
 
             var principal = new ClaimsPrincipal(claimsIdentity);
 
-            await context.SignInAsync(options.AuthenticationScheme, principal);
+            if(options.CallSignInAndSignOut) await context.SignInAsync(options.AuthenticationScheme, principal);
 
             context.User = principal;
         }
@@ -153,6 +153,11 @@ namespace DelegatedAuthentication
         /// Authentication scheme to use on sign in. Required.
         /// </summary>
         public string AuthenticationScheme { get; set; } = null!;
+
+        /// <summary>
+        /// Call SignIn and SignOut on context. Defaults to true.
+        /// </summary>
+        public bool CallSignInAndSignOut { get; set; } = true;
 
         /// <summary>
         /// Cookie name used on sign in. Defaults to ".ASPXAUTH".
