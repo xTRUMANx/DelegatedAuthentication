@@ -44,7 +44,7 @@ namespace DelegatedAuthentication
                     await context.SignOutAsync();
                 }
 
-                context.Response.Redirect(loginPage);
+                if(options.RedirectToLoginPage) context.Response.Redirect(loginPage);
 
                 return;
             }
@@ -56,7 +56,7 @@ namespace DelegatedAuthentication
                 await DoDelegatedAuth(context, res);
             }
 
-            if (context.User.Identity?.IsAuthenticated == false)
+            if (context.User.Identity?.IsAuthenticated == false && options.RedirectToLoginPage)
             {
                 context.Response.Redirect(loginPage);
             }
@@ -144,6 +144,11 @@ namespace DelegatedAuthentication
         public bool CallSignInAndSignOut { get; set; } = true;
 
         /// <summary>
+        /// If set to true, the middleware will redirect the user to the login page if they are not authenticated. Defaults to true.
+        /// </summary>
+        public bool RedirectToLoginPage { get; set; } = true;
+
+        /// <summary>
         /// Endpoint to fetch authentication information from. Required if ForceLoginAs is not set.
         /// </summary>
         public string AuthEndpoint { get; set; } = null!;
@@ -159,7 +164,7 @@ namespace DelegatedAuthentication
         public string CookieName { get; set; } = ".ASPXAUTH";
 
         /// <summary>
-        /// Login page URL to redirect user to if they are not logged in. Required if ForceLoginAs is not set.
+        /// Login page URL to redirect user to if they are not logged in. Required if RedirectToLoginPage is true.
         /// </summary>
         public string LoginPage { get; set; } = null!;
 
@@ -186,11 +191,11 @@ namespace DelegatedAuthentication
                 {
                     throw new ArgumentNullException(nameof(AuthEndpoint), $"{nameof(AuthEndpoint)} must be specifed.");
                 }
+            }
 
-                if (string.IsNullOrWhiteSpace(LoginPage))
-                {
-                    throw new ArgumentNullException(nameof(LoginPage), $"{nameof(LoginPage)} must be specifed.");
-                }
+            if (RedirectToLoginPage && string.IsNullOrWhiteSpace(LoginPage))
+            {
+                throw new ArgumentNullException(nameof(LoginPage), $"{nameof(LoginPage)} must be specifed.");
             }
         }
     }
