@@ -175,7 +175,7 @@ namespace DelegatedAuthentication
 
         public void Validate()
         {
-            if (string.IsNullOrWhiteSpace(AuthenticationScheme))
+            if (CallSignInAndSignOut && string.IsNullOrWhiteSpace(AuthenticationScheme))
             {
                 throw new ArgumentNullException(nameof(AuthenticationScheme), $"{nameof(AuthenticationScheme)} must be specifed.");
             }
