@@ -45,6 +45,7 @@ namespace DelegatedAuthentication
                 }
 
                 if(options.RedirectToLoginPage) context.Response.Redirect(loginPage);
+                else await next(context);
 
                 return;
             }
