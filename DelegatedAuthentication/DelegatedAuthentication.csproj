@@ -9,7 +9,7 @@
     <Description>Delegate authentication to a different application.</Description>
     <PackageProjectUrl>https://github.com/xTRUMANx/DelegatedAuthentication</PackageProjectUrl>
     <RepositoryUrl>https://github.com/xTRUMANx/DelegatedAuthentication</RepositoryUrl>
-    <Version>2.6.3</Version>
+    <Version>2.6.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -39,7 +39,7 @@ namespace DelegatedAuthentication
 
             if (string.IsNullOrWhiteSpace(cookie))
             {
-                if (options.CallSignInAndSignOut && IsAuthenticated(context))
+                if (IsAuthenticated(context))
                 {
                     await context.SignOutAsync();
                 }
@@ -92,7 +92,7 @@ namespace DelegatedAuthentication
 
             var principal = new ClaimsPrincipal(claimsIdentity);
 
-            if(options.CallSignInAndSignOut) await context.SignInAsync(options.AuthenticationScheme, principal);
+            await context.SignInAsync(options.AuthenticationScheme, principal);
 
             context.User = principal;
         }
@@ -140,11 +140,6 @@ namespace DelegatedAuthentication
         public string? ForceLoginAs { get; set; }
 
         /// <summary>
-        /// If set to true, the middleware will call SignInAsync and SignOutAsync on the context. Defaults to true.
-        /// </summary>
-        public bool CallSignInAndSignOut { get; set; } = true;
-
-        /// <summary>
         /// If set to true, the middleware will redirect the user to the login page if they are not authenticated. Defaults to true.
         /// </summary>
         public bool RedirectToLoginPage { get; set; } = true;
@@ -181,7 +176,7 @@ namespace DelegatedAuthentication
 
         public void Validate()
         {
-            if (CallSignInAndSignOut && string.IsNullOrWhiteSpace(AuthenticationScheme))
+            if (string.IsNullOrWhiteSpace(AuthenticationScheme))
             {
                 throw new ArgumentNullException(nameof(AuthenticationScheme), $"{nameof(AuthenticationScheme)} must be specifed.");
             }
