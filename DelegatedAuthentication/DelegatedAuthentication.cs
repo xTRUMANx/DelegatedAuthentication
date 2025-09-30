@@ -35,19 +35,22 @@ namespace DelegatedAuthentication
                 loginPage = BuildAbsoluteUrlBasedOnRequest(context, loginPage);
             }
 
-            var cookie = GetCookie(context);
-
-            if (string.IsNullOrWhiteSpace(cookie))
+            if (string.IsNullOrWhiteSpace(options.ForceLoginAs))
             {
-                if (IsAuthenticated(context))
+                var cookie = GetCookie(context);
+
+                if (string.IsNullOrWhiteSpace(cookie))
                 {
-                    if (options.CallSignInAndSignOut) await context.SignOutAsync();
+                    if (IsAuthenticated(context))
+                    {
+                        if (options.CallSignInAndSignOut) await context.SignOutAsync();
+                    }
+
+                    if (options.RedirectToLoginPage) context.Response.Redirect(loginPage);
+                    else await next(context);
+
+                    return;
                 }
-
-                if(options.RedirectToLoginPage) context.Response.Redirect(loginPage);
-                else await next(context);
-
-                return;
             }
 
             DelegatedAuthenticationResponse? res = await GetDelegatedAuthenticationResponseAsync(context);
